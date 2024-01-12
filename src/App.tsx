@@ -1,13 +1,17 @@
 // src/App.tsx
-import React from 'react';
-import AppRoutes from './routes';
+import React from "react";
+import AppRoutes from "./routes";
+import { Navbar } from "./components/Navbar";
+import { BrowserRouter } from "react-router-dom";
 
 const App: React.FC = () => {
   return (
     <div>
-      <h1>My React TypeScript App</h1>
+    <BrowserRouter basename="/">
+      <Navbar />
       <AppRoutes />
-    </div>
+    </BrowserRouter>
+  </div>
   );
 };
 
