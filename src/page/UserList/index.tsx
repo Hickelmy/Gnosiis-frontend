@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  DataGrid,
-  GridToolbarContainer,
-  GridToolbarExport,
-  GridToolbarColumnsButton,
-  GridToolbarFilterButton,
-  GridToolbarDensitySelector,
-  GridToolbarContainerProps,
-} from '@mui/x-data-grid';
-import {
   Container,
   Button,
   Dialog,
@@ -19,16 +10,27 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
+  Typography,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import {
+  DataGrid,
+  GridToolbarColumnsButton,
+  GridToolbarContainer,
+  GridToolbarContainerProps,
+  GridToolbarDensitySelector,
+  GridToolbarExport,
+  GridToolbarFilterButton,
+} from '@mui/x-data-grid';
 
 interface User {
   id: number;
   nome: string;
   email: string;
   tipo: string;
-  dataNascimento: string; // Adicionado o campo dataNascimento
+  dataNascimento: string;
+  [key: string]: any; // Adiciona uma assinatura de índice para aceitar qualquer chave de string
 }
 
 interface ApiResponse {
@@ -37,23 +39,24 @@ interface ApiResponse {
 }
 
 export const UserList: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[] | undefined>(undefined);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [fieldToEdit, setFieldToEdit] = useState<string | null>(null);
 
   useEffect(() => {
-    // Carregar usuários da API ao montar o componente
     fetch('http://localhost:3090/api/user')
       .then((response) => response.json())
       .then((data: ApiResponse) => setUsers(data.items))
       .catch((error) => console.error('Erro ao carregar usuários:', error));
   }, []);
 
-  const handleEdit = (id: number) => {
-    const userToEdit = users.find((user) => user.id === id);
+  const handleEdit = (id: number, field: string) => {
+    const userToEdit = users?.find((user) => user.id === id);
     setSelectedUser(userToEdit || null);
+    setFieldToEdit(field);
     setEditDialogOpen(true);
   };
 
@@ -64,8 +67,7 @@ export const UserList: React.FC = () => {
       });
 
       if (response.ok) {
-        // Atualiza a lista de usuários após a exclusão
-        const updatedUsers = users.filter((user) => user.id !== id);
+        const updatedUsers = users?.filter((user) => user.id !== id);
         setUsers(updatedUsers);
         setSnackbarOpen(true);
       } else {
@@ -78,27 +80,30 @@ export const UserList: React.FC = () => {
 
   const handleEditSubmit = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:3090/api/user/${selectedUser?.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(selectedUser),
-        }
-      );
-
-      if (response.ok) {
-        // Atualiza a lista de usuários após a edição
-        const updatedUsers = users.map((user) =>
-          user.id === selectedUser?.id ? selectedUser : user
+      if (fieldToEdit && selectedUser) {
+        const response = await fetch(
+          `http://localhost:3090/api/user/${selectedUser.id}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              [fieldToEdit]: selectedUser[fieldToEdit],
+            }),
+          }
         );
-        setUsers(updatedUsers);
-        setEditDialogOpen(false);
-        setSnackbarOpen(true);
-      } else {
-        console.error('Erro ao editar usuário:', response.statusText);
+
+        if (response.ok) {
+          const updatedUsers = users?.map((user) =>
+            user.id === selectedUser.id ? selectedUser : user
+          );
+          setUsers(updatedUsers);
+          setEditDialogOpen(false);
+          setSnackbarOpen(true);
+        } else {
+          console.error('Erro ao editar usuário:', response.statusText);
+        }
       }
     } catch (error) {
       console.error('Erro ao realizar a requisição:', error);
@@ -122,7 +127,7 @@ export const UserList: React.FC = () => {
       width: 100,
       renderCell: (params: any) => (
         <Tooltip title="Editar">
-          <IconButton onClick={() => handleEdit(params.row.id)}>
+          <IconButton onClick={() => handleEdit(params.row.id, 'nome')}>
             <EditIcon />
           </IconButton>
         </Tooltip>
@@ -146,31 +151,35 @@ export const UserList: React.FC = () => {
 
   return (
     <Container style={{ marginTop: '20px' }}>
-      <DataGrid
-        rows={users}
-        columns={columns}
-        // pageSize={5}
-        components={{
-          Toolbar: CustomToolbar,
-        }}
-      />
+      {users !== undefined && users.length > 0 ? (
+        <DataGrid
+          rows={users}
+          columns={columns}
+          components={{
+            Toolbar: CustomToolbar,
+          }}
+        />
+      ) : (
+        <Typography variant="body1">Nenhum usuário encontrado.</Typography>
+      )}
 
-      {/* Modal de Edição */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
         <DialogTitle>Editar Usuário</DialogTitle>
         <DialogContent>
-          {selectedUser && (
+          {selectedUser && fieldToEdit && (
             <>
               <TextField
-                label="Novo Nome"
-                value={selectedUser.nome}
+                label={`Novo ${fieldToEdit}`}
+                value={selectedUser[fieldToEdit]}
                 onChange={(e) =>
-                  setSelectedUser({ ...selectedUser, nome: e.target.value })
+                  setSelectedUser({
+                    ...selectedUser,
+                    [fieldToEdit]: e.target.value,
+                  })
                 }
                 fullWidth
                 margin="normal"
               />
-              {/* Adicione campos adicionais conforme necessário */}
             </>
           )}
         </DialogContent>
@@ -184,7 +193,6 @@ export const UserList: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para exibir mensagem de sucesso */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
