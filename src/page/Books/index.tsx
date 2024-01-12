@@ -9,84 +9,74 @@ import {
   FormControl,
   InputLabel,
   SelectChangeEvent,
-  Input,
 } from "@mui/material";
-
 interface BookFormData {
   autor: string;
   lancamento: string;
   tipo: string;
   genero: string;
   editora: string;
-  anoEdicao: string;
-  numEdicao: number;
-  preco?: number;
-  descricao?: string;
-  imagem?: File | null;
-}
-
-export const AddBook: React.FC = () => {
+  anoEdicao: number;
+  numeroEdicao: number;
+  preco: number;
+  descricao: string;
+ }
+ 
+ export const AddBook: React.FC = () => {
   const [formData, setFormData] = useState<BookFormData>({
     autor: "",
     lancamento: "",
     tipo: "",
     genero: "",
     editora: "",
-    anoEdicao: "",
-    numEdicao: 0,
-    preco: undefined,
-    descricao: undefined,
-    imagem: null,
+    anoEdicao: 0,
+    numeroEdicao: 0,
+    preco: 0,
+    descricao: "",
   });
-
-  const handleChange =
-    (name: keyof BookFormData) =>
-    (
-      event: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | { value: unknown }
-      >
-    ) => {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: event.target.value,
-      }));
-    };
-
+ 
+  const handleChange = (name: keyof BookFormData) => (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { value: unknown }>
+  ) => {
+    let value: string | number;
+  
+    if (name === "anoEdicao" || name === "numeroEdicao" || name === "preco") {
+      value = parseFloat((event as React.ChangeEvent<HTMLInputElement>).target.value);
+    } else if (name === "lancamento") {
+      value = event.target.value as string; 
+    } else {
+      value = event.target.value as string;
+    }
+  
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+  
+ 
   const handleGeneroChange = (event: SelectChangeEvent<string>) => {
     setFormData((prevData) => ({
       ...prevData,
       genero: event.target.value,
     }));
   };
-
-  const handleCapaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      setFormData((prevData) => ({
-        ...prevData,
-        imagem: files[0],
-      }));
-    }
-  };
+ 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-
-    const formDataToSend = new FormData();
-
-    for (const [key, value] of Object.entries(formData)) {
-      if (key === "imagem" && value === null) {
-        continue;
-      }
-
-      formDataToSend.append(key, value as string | Blob);
-    }
-
+  
     try {
-      const response = await fetch("http://localhost:3090/api/books", {
-        method: "POST",
-        body: formDataToSend,
-      });
+      console.log('formData : ',formData)
 
+      const response = await fetch("http://localhost:3090/api/books", {
+
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+  
       if (response.ok) {
         console.log("Livro cadastrado com sucesso!");
       } else {
@@ -96,7 +86,7 @@ export const AddBook: React.FC = () => {
       console.error("Erro ao realizar a requisição:", error);
     }
   };
-
+  
   return (
     <Container style={{ padding: "20px" }}>
       <Typography variant="h4">Cadastrar Livro</Typography>
@@ -146,7 +136,7 @@ export const AddBook: React.FC = () => {
           margin="normal"
         />
         <TextField
-          type="date"
+          type="number"
           label="Ano de Edição"
           value={formData.anoEdicao}
           onChange={handleChange("anoEdicao")}
@@ -156,8 +146,8 @@ export const AddBook: React.FC = () => {
         <TextField
           type="number"
           label="Número de Edição"
-          value={formData.numEdicao}
-          onChange={handleChange("numEdicao")}
+          value={formData.numeroEdicao}
+          onChange={handleChange("numeroEdicao")}
           fullWidth
           margin="normal"
         />
@@ -177,14 +167,6 @@ export const AddBook: React.FC = () => {
           onChange={handleChange("descricao")}
           fullWidth
           margin="normal"
-        />
-
-        <Input
-          type="file"
-          name="imagem"
-          onChange={handleCapaChange}
-          inputProps={{ accept: "image/*" }}
-          style={{ marginTop: "16px" }}
         />
 
         <Button
