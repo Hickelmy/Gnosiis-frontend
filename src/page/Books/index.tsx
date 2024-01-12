@@ -10,73 +10,80 @@ import {
   InputLabel,
   SelectChangeEvent,
 } from "@mui/material";
+
 interface BookFormData {
-  autor: string;
-  lancamento: string;
+  nomeDoAutor: string;
+  nome: string;
+  lancamento: Date;
   tipo: string;
   genero: string;
   editora: string;
   anoEdicao: number;
-  numeroEdicao: number;
+  numEdicao: number;
   preco: number;
   descricao: string;
- }
- 
- export const AddBook: React.FC = () => {
+}
+
+export const AddBook: React.FC = () => {
   const [formData, setFormData] = useState<BookFormData>({
-    autor: "",
-    lancamento: "",
+    nomeDoAutor: "",
+    nome: "",
+    lancamento: new Date(),
     tipo: "",
     genero: "",
     editora: "",
     anoEdicao: 0,
-    numeroEdicao: 0,
+    numEdicao: 0,
     preco: 0,
     descricao: "",
   });
- 
+
   const handleChange = (name: keyof BookFormData) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { value: unknown }>
   ) => {
-    let value: string | number;
-  
-    if (name === "anoEdicao" || name === "numeroEdicao" || name === "preco") {
+    let value: string | number | Date;
+
+    if (name === "anoEdicao" || name === "numEdicao" || name === "preco") {
       value = parseFloat((event as React.ChangeEvent<HTMLInputElement>).target.value);
     } else if (name === "lancamento") {
-      value = event.target.value as string; 
+      value = new Date(event.target.value as string); // Converta para uma instância de Date
     } else {
       value = event.target.value as string;
     }
-  
+
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
-  
- 
+
   const handleGeneroChange = (event: SelectChangeEvent<string>) => {
     setFormData((prevData) => ({
       ...prevData,
       genero: event.target.value,
     }));
   };
- 
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-  
+
     try {
-      console.log('formData : ',formData)
+      // Converta a data para o formato desejado pela API
+      const formattedData = {
+        ...formData,
+        lancamento: formData.lancamento.toISOString().split('T')[0],
+      };
+
+      console.log('formData : ', formattedData);
 
       const response = await fetch("http://localhost:3090/api/books", {
-
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formattedData),
       });
-  
+
       if (response.ok) {
         console.log("Livro cadastrado com sucesso!");
       } else {
@@ -86,15 +93,24 @@ interface BookFormData {
       console.error("Erro ao realizar a requisição:", error);
     }
   };
-  
+
+
+
   return (
     <Container style={{ padding: "20px" }}>
       <Typography variant="h4">Cadastrar Livro</Typography>
       <form onSubmit={handleSubmit}>
         <TextField
           label="Autor"
-          value={formData.autor}
-          onChange={handleChange("autor")}
+          value={formData.nomeDoAutor}
+          onChange={handleChange("nomeDoAutor")}
+          fullWidth
+          margin="normal"
+        />
+         <TextField
+          label="Nome do Livro"
+          value={formData.nome}
+          onChange={handleChange("nome")}
           fullWidth
           margin="normal"
         />
@@ -146,8 +162,8 @@ interface BookFormData {
         <TextField
           type="number"
           label="Número de Edição"
-          value={formData.numeroEdicao}
-          onChange={handleChange("numeroEdicao")}
+          value={formData.numEdicao}
+          onChange={handleChange("numEdicao")}
           fullWidth
           margin="normal"
         />
