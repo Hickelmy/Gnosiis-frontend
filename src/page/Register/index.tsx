@@ -62,7 +62,7 @@ export const Register: React.FC = () => {
       />
       <TextField
         type="date"
-        label="Data de Nascimento"
+        // label="Data de Nascimento"
         value={dataNascimento}
         onChange={(e) => setDataNascimento(e.target.value)}
         fullWidth

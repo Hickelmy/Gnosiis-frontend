@@ -9,6 +9,7 @@ import {
   FormControl,
   InputLabel,
   SelectChangeEvent,
+  Snackbar,
 } from "@mui/material";
 
 interface BookFormData {
@@ -25,6 +26,8 @@ interface BookFormData {
 }
 
 export const AddBook: React.FC = () => {
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+
   const [formData, setFormData] = useState<BookFormData>({
     nomeDoAutor: "",
     nome: "",
@@ -46,7 +49,7 @@ export const AddBook: React.FC = () => {
     if (name === "anoEdicao" || name === "numEdicao" || name === "preco") {
       value = parseFloat((event as React.ChangeEvent<HTMLInputElement>).target.value);
     } else if (name === "lancamento") {
-      value = new Date(event.target.value as string); // Converta para uma instância de Date
+      value = new Date(event.target.value as string);
     } else {
       value = event.target.value as string;
     }
@@ -68,7 +71,6 @@ export const AddBook: React.FC = () => {
     event.preventDefault();
 
     try {
-      // Converta a data para o formato desejado pela API
       const formattedData = {
         ...formData,
         lancamento: formData.lancamento.toISOString().split('T')[0],
@@ -85,6 +87,8 @@ export const AddBook: React.FC = () => {
       });
 
       if (response.ok) {
+        setSnackbarOpen(true);
+
         console.log("Livro cadastrado com sucesso!");
       } else {
         console.error("Erro ao cadastrar livro:", response.statusText);
@@ -95,6 +99,9 @@ export const AddBook: React.FC = () => {
   };
 
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
 
   return (
     <Container style={{ padding: "20px" }}>
@@ -116,7 +123,7 @@ export const AddBook: React.FC = () => {
         />
         <TextField
           type="date"
-          label="Lançamento"
+          // label="Lançamento"
           value={formData.lancamento}
           onChange={handleChange("lancamento")}
           fullWidth
@@ -194,6 +201,12 @@ export const AddBook: React.FC = () => {
           Cadastrar Livro
         </Button>
       </form>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        message={snackbarOpen ? "Livro cadastrado com sucesso!" : ""}
+      />
     </Container>
   );
 };

@@ -30,7 +30,7 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import TableChartIcon from "@mui/icons-material/TableChart";
-
+import PersonIcon from '@mui/icons-material/Person';
 export const Navbar: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accountMenuAnchor, setAccountMenuAnchor] =
@@ -159,29 +159,13 @@ export const Navbar: React.FC = () => {
           >
             <ListItem button onClick={toggleDrawer(false)}>
               <ListItemIcon>
-                <HomeIcon />
+                <PersonIcon />
               </ListItemIcon>
               <span>Usuarios</span>
             </ListItem>
           </Link>
 
-          <Link
-            to="/login"
-            style={{
-              textDecoration: "none",
-              color: "inherit",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <ListItem button onClick={toggleDrawer(false)}>
-              <ListItemIcon>
-                <PersonAddIcon />
-              </ListItemIcon>
-
-              <span>Login</span>
-            </ListItem>
-          </Link>
+          
 
           <Link
             to="/registro"
@@ -198,6 +182,24 @@ export const Navbar: React.FC = () => {
               </ListItemIcon>
 
               <span>Cadastrar usuário</span>
+            </ListItem>
+          </Link>
+
+          <Link
+            to="/login"
+            style={{
+              textDecoration: "none",
+              color: "inherit",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <ListItem button onClick={toggleDrawer(false)}>
+              <ListItemIcon>
+                <LoginIcon />
+              </ListItemIcon>
+
+              <span>Login</span>
             </ListItem>
           </Link>
           <Link
