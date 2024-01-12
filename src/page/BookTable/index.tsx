@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Container,
@@ -11,18 +11,18 @@ import {
   Grid,
   IconButton,
   Typography,
-} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { DataGrid } from '@mui/x-data-grid';
-
-
+  Switch,
+  TextField,
+} from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { DataGrid } from "@mui/x-data-grid";
+import axios from "axios";
 
 interface Product {
   id: number;
   nome: string;
   nomeDoAutor: string;
-  lancamento: number;
   tipo: string;
   genero: string;
   editora: string;
@@ -32,28 +32,53 @@ interface Product {
   price: number;
 }
 
-// const apiUrl = 'http://localhost/api/produtos'; 
+interface ApiResponseCustom {
+  items: Product[];
+  total?: number;
+}
 
-const API_URL = '/livro/';
+const API_URL_DEFAULT = "/livro/";
+const API_URL_CUSTOM = "http://localhost:3090/api/books/";
+const SWITCH_LOCAL_STORAGE_KEY = "apiSwitch2";
 
 export const BooktListPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]); 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); 
-  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false); 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [useCustomApi, setUseCustomApi] = useState<boolean>(() => {
+    const storedValue = localStorage.getItem(SWITCH_LOCAL_STORAGE_KEY);
+    return storedValue ? JSON.parse(storedValue) : false;
+  });
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(10);
+  const [editedProduct, setEditedProduct] = useState<Omit<
+    Product,
+    "lancamento"
+  > | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchBooks = async () => {
       try {
-        const response = await fetch(API_URL);
-        const data: Product[] = await response.json();
-        setProducts(data);
+        const apiUrl = useCustomApi ? API_URL_CUSTOM : API_URL_DEFAULT;
+        const response = await axios.get<any>(`${apiUrl}?page=${page}`);
+
+        if (useCustomApi) {
+          const customResponse = response.data as ApiResponseCustom;
+          setProducts(customResponse.items);
+          setTotalPages(customResponse.total || 1);
+        } else {
+          const defaultResponse = response.data;
+          setProducts(defaultResponse);
+          setTotalPages(defaultResponse.totalPages);
+        }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error :", error);
+        setProducts([]);
       }
     };
 
-    fetchData();
-  }, []);
+    fetchBooks();
+  }, [page, useCustomApi]);
 
   const handleDeleteClick = (product: Product) => {
     setSelectedProduct(product);
@@ -62,17 +87,21 @@ export const BooktListPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await fetch(`${API_URL}/${selectedProduct?.id}`, {
-        method: 'DELETE',
-      });
+      await axios.delete(
+        `${useCustomApi ? API_URL_CUSTOM : API_URL_DEFAULT}${
+          selectedProduct?.id
+        }`
+      );
 
-      const updatedProducts = products.filter((product) => product.id !== selectedProduct?.id);
+      const updatedProducts = products.filter(
+        (product) => product.id !== selectedProduct?.id
+      );
       setProducts(updatedProducts);
 
       setDeleteConfirmationOpen(false);
       setSelectedProduct(null);
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.error("Error :", error);
     }
   };
 
@@ -81,26 +110,78 @@ export const BooktListPage: React.FC = () => {
     setSelectedProduct(null);
   };
 
+  const handleEditClick = (product: Product) => {
+    const {...editedProductWithoutLancamento } = product;
+    setEditedProduct(editedProductWithoutLancamento);
+    setSelectedProduct(product);
+  };
+
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setEditedProduct((prevProduct) => ({
+      ...prevProduct!,
+      [name]: value,
+    }));
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const { id, nome, nomeDoAutor } = editedProduct || {};
+      
+      if (!id || !nome || !nomeDoAutor) {
+        console.error("Invalid data for update");
+        return;
+      }
+  
+      const response = await axios.put(
+        `${useCustomApi ? API_URL_CUSTOM : API_URL_DEFAULT}${id}`,
+        {
+          nome,
+          nomeDoAutor,
+        }
+      );
+  
+      if (response.status === 200) {
+        const updatedProducts = products.map((product) =>
+          product.id === id ? { ...product, nome, nomeDoAutor } : product
+        );
+  
+        setProducts(updatedProducts);
+        setSelectedProduct(null);
+        setEditedProduct(null);
+      } else {
+        console.error("Error :", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+    }
+  };
+  
+
   const columns = [
-    { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'nome', headerName: 'Title', width: 200 },
-    { field: 'nomeDoAutor', headerName: 'Author', width: 200 },
-    { field: 'lancamento', headerName: 'Release Date', width: 150 },
-    { field: 'tipo', headerName: 'Type', width: 120 },
-    { field: 'genero', headerName: 'Genre', width: 150 },
-    { field: 'editora', headerName: 'Publisher', width: 200 },
-    { field: 'anoEdicao', headerName: 'Edition Year', width: 120 },
-    { field: 'numEdicao', headerName: 'Edition Number', width: 150 },
+    { field: "id", headerName: "ID", width: 70 },
+    { field: "nome", headerName: "Title", width: 200 },
+    { field: "nomeDoAutor", headerName: "Author", width: 200 },
+    { field: "tipo", headerName: "Type", width: 120 },
+    { field: "genero", headerName: "Genre", width: 150 },
+    { field: "editora", headerName: "Publisher", width: 200 },
+    { field: "anoEdicao", headerName: "Edition Year", width: 120 },
+    { field: "numEdicao", headerName: "Edition Number", width: 150 },
     {
-      field: 'actions',
-      headerName: 'Actions',
+      field: "actions",
+      headerName: "Actions",
       width: 150,
       renderCell: (params: { row: Product }) => (
         <>
-          <IconButton onClick={() => setSelectedProduct(params.row)} title="Edit">
+          <IconButton onClick={() => handleEditClick(params.row)} title="Edit">
             <EditIcon />
           </IconButton>
-          <IconButton onClick={() => handleDeleteClick(params.row)} title="Delete">
+          <IconButton
+            onClick={() => handleDeleteClick(params.row)}
+            title="Delete"
+          >
             <DeleteIcon />
           </IconButton>
         </>
@@ -108,40 +189,72 @@ export const BooktListPage: React.FC = () => {
     },
   ];
 
-  const handleUpdate = () => {
-    console.log('Update');
-    setSelectedProduct(null);
-  };
-
   return (
-    <Container component="main" maxWidth="lg">
+    <Container component="main" style={{ padding: "20px" }}>
       <CssBaseline />
       <Typography variant="h5" component="div" sx={{ mb: 3 }}>
         Listar Livros
       </Typography>
 
-      <div style={{ height: 400, width: '100%' }}>
-        <DataGrid
-          rows={products}
-          columns={columns}
-          // pageSize={10}
-          // rowsPerPageOptions={[10]}
-          pagination
-        />
+      <Switch
+        checked={useCustomApi}
+        onChange={() => {
+          setUseCustomApi(!useCustomApi);
+          localStorage.setItem(
+            SWITCH_LOCAL_STORAGE_KEY,
+            JSON.stringify(!useCustomApi)
+          );
+        }}
+        inputProps={{ "aria-label": "alternar API" }}
+      />
+      <span>Alternar API</span>
+
+      <div style={{ height: 400, width: "100%" }}>
+        <DataGrid rows={products} columns={columns} pagination />
       </div>
 
-      <Dialog open={Boolean(selectedProduct)} onClose={() => setSelectedProduct(null)}>
+      <Dialog
+        open={Boolean(selectedProduct)}
+        onClose={() => {
+          setSelectedProduct(null);
+          setEditedProduct(null);
+        }}
+      >
         <DialogTitle>Editar Produto</DialogTitle>
         <DialogContent>
-          {selectedProduct && (
+          {editedProduct && (
             <form>
               <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Nome"
+                    name="nome"
+                    fullWidth
+                    value={editedProduct.nome || ""}
+                    onChange={handleEditChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Nome do Autor"
+                    name="nomeDoAutor"
+                    fullWidth
+                    value={editedProduct.nomeDoAutor || ""}
+                    onChange={handleEditChange}
+                  />
+                </Grid>
               </Grid>
             </form>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSelectedProduct(null)} color="primary">
+          <Button
+            onClick={() => {
+              setSelectedProduct(null);
+              setEditedProduct(null);
+            }}
+            color="primary"
+          >
             Cancelar
           </Button>
           <Button onClick={handleUpdate} color="primary">
@@ -151,10 +264,11 @@ export const BooktListPage: React.FC = () => {
       </Dialog>
 
       <Dialog open={deleteConfirmationOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Deletar Livro s</DialogTitle>
+        <DialogTitle>Deletar Livros</DialogTitle>
         <DialogContent>
           <DialogContentText>
-          Tem certeza de que deseja excluir o produto "{selectedProduct?.nome}"?
+            Tem certeza de que deseja excluir o produto "{selectedProduct?.nome}
+            "?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -169,4 +283,3 @@ export const BooktListPage: React.FC = () => {
     </Container>
   );
 };
-

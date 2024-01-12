@@ -6,7 +6,7 @@ interface Book {
   id: number;
   nome: string;
   nomeDoAutor: string;
-  lancamento: number | string; // Pode ser um número ou uma string
+  lancamento: number | string; 
   tipo: string;
   genero: string;
   editora: string;
