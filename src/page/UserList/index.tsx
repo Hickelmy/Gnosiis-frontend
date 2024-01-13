@@ -11,6 +11,10 @@ import {
   Tooltip,
   Snackbar,
   Typography,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -30,7 +34,7 @@ interface User {
   email: string;
   tipo: string;
   dataNascimento: string;
-  [key: string]: any; // Adiciona uma assinatura de índice para aceitar qualquer chave de string
+  [key: string]: any;
 }
 
 interface ApiResponse {
@@ -45,13 +49,24 @@ export const UserList: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [fieldToEdit, setFieldToEdit] = useState<string | null>(null);
+  const [searchField, setSearchField] = useState<string>('nome');
+  const [searchValue, setSearchValue] = useState<string>('');
 
   useEffect(() => {
-    fetch('http://localhost:3090/api/user')
-      .then((response) => response.json())
-      .then((data: ApiResponse) => setUsers(data.items))
-      .catch((error) => console.error('Erro ao carregar usuários:', error));
-  }, []);
+    fetchUsers();
+  }, [searchField, searchValue]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:3090/api/user?${searchField}=${searchValue}`
+      );
+      const data: ApiResponse = await response.json();
+      setUsers(data.items);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const handleEdit = (id: number, field: string) => {
     const userToEdit = users?.find((user) => user.id === id);
@@ -151,6 +166,29 @@ export const UserList: React.FC = () => {
 
   return (
     <Container style={{ marginTop: '20px' }}>
+      <FormControl style={{ marginBottom: '20px', minWidth: '120px' }}>
+        <InputLabel id="search-field-label">Campo de Pesquisa</InputLabel>
+        <Select
+          labelId="search-field-label"
+          id="search-field"
+          value={searchField}
+          onChange={(e) => setSearchField(e.target.value as string)}
+        >
+          <MenuItem value="id">ID</MenuItem>
+          <MenuItem value="nome">Nome</MenuItem>
+          <MenuItem value="email">Email</MenuItem>
+          <MenuItem value="tipo">Tipo</MenuItem>
+        </Select>
+      </FormControl>
+      <TextField
+        label="Valor de Pesquisa"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        fullWidth
+        margin="normal"
+        style={{ marginBottom: '20px' }}
+      />
+
       {users !== undefined && users.length > 0 ? (
         <DataGrid
           rows={users}

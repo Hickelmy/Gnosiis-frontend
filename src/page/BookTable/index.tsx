@@ -13,6 +13,10 @@ import {
   Typography,
   Switch,
   TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -55,12 +59,16 @@ export const BooktListPage: React.FC = () => {
     Product,
     "lancamento"
   > | null>(null);
+  const [searchField, setSearchField] = useState<string>("nome");
+  const [searchValue, setSearchValue] = useState<string>("");
 
   useEffect(() => {
     const fetchBooks = async () => {
       try {
         const apiUrl = useCustomApi ? API_URL_CUSTOM : API_URL_DEFAULT;
-        const response = await axios.get<any>(`${apiUrl}?page=${page}`);
+        const response = await axios.get<any>(
+          `${apiUrl}?page=${page}&${searchField}=${searchValue}`
+        );
 
         if (useCustomApi) {
           const customResponse = response.data as ApiResponseCustom;
@@ -78,7 +86,7 @@ export const BooktListPage: React.FC = () => {
     };
 
     fetchBooks();
-  }, [page, useCustomApi]);
+  }, [page, useCustomApi, searchField, searchValue]);
 
   const handleDeleteClick = (product: Product) => {
     setSelectedProduct(product);
@@ -129,12 +137,12 @@ export const BooktListPage: React.FC = () => {
   const handleUpdate = async () => {
     try {
       const { id, nome, nomeDoAutor } = editedProduct || {};
-      
+
       if (!id || !nome || !nomeDoAutor) {
         console.error("Invalid data for update");
         return;
       }
-  
+
       const response = await axios.put(
         `${useCustomApi ? API_URL_CUSTOM : API_URL_DEFAULT}${id}`,
         {
@@ -142,12 +150,12 @@ export const BooktListPage: React.FC = () => {
           nomeDoAutor,
         }
       );
-  
+
       if (response.status === 200) {
         const updatedProducts = products.map((product) =>
           product.id === id ? { ...product, nome, nomeDoAutor } : product
         );
-  
+
         setProducts(updatedProducts);
         setSelectedProduct(null);
         setEditedProduct(null);
@@ -158,7 +166,6 @@ export const BooktListPage: React.FC = () => {
       console.error("Error updating product:", error);
     }
   };
-  
 
   const columns = [
     { field: "id", headerName: "ID", width: 70 },
@@ -208,6 +215,30 @@ export const BooktListPage: React.FC = () => {
         inputProps={{ "aria-label": "alternar API" }}
       />
       <span>Alternar API</span>
+
+      <FormControl style={{ marginBottom: '20px', minWidth: '120px' }}>
+        <InputLabel id="search-field-label">Campo de Pesquisa</InputLabel>
+        <Select
+          labelId="search-field-label"
+          id="search-field"
+          value={searchField}
+          onChange={(e) => setSearchField(e.target.value as string)}
+        >
+          <MenuItem value="id">ID</MenuItem>
+          <MenuItem value="nome">Nome</MenuItem>
+          <MenuItem value="nomeDoAutor">Nome do Autor</MenuItem>
+          {/* Add more fields as needed */}
+        </Select>
+      </FormControl>
+
+      <TextField
+        label="Valor de Pesquisa"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        fullWidth
+        margin="normal"
+        style={{ marginBottom: '20px' }}
+      />
 
       <div style={{ height: 400, width: "100%" }}>
         <DataGrid rows={products} columns={columns} pagination />
